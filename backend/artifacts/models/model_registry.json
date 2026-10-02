@@ -1,0 +1,69 @@
+{
+  "dataset_provenance": {
+    "dataset_id": "SYNTH_FLEET_BGW_180D_V1",
+    "source_type": "SYNTHETIC",
+    "random_seed": 42,
+    "wells_count": 12,
+    "records_count": 2160,
+    "created_at": "2026-09-29T15:11:37.014532",
+    "disclaimer": "Synthetic training dataset generated using coupled physics simulation. NOT Oil India field measurements."
+  },
+  "models": {
+    "production_surrogate": {
+      "model_id": "MOD-SURR-PROD-01",
+      "algorithm": "PolynomialRidgeRegressor (NumPy)",
+      "version": "1.0.0",
+      "status": "DEMO",
+      "artifact_path": "C:\\Users\\Parth\\Desktop\\Coding\\SIH\\backend\\artifacts\\models\\production_surrogate.json",
+      "features": [
+        "temperature_c",
+        "viscosity_cp",
+        "stroke_in",
+        "spm",
+        "vfd_hz",
+        "flowing_bhp_bar"
+      ],
+      "metrics": {
+        "MAE": 30.37,
+        "RMSE": 40.49,
+        "R2": 0.7691
+      },
+      "validation_strategy": "25% Holdout on Synthetic Trajectories",
+      "validation_status": "DEMO / NOT FIELD VALIDATED"
+    },
+    "rod_float_risk_classifier": {
+      "model_id": "MOD-CLF-RODFLOAT-01",
+      "algorithm": "RegularizedLogisticClassifier (SciPy)",
+      "version": "1.0.0",
+      "status": "DEMO",
+      "artifact_path": "C:\\Users\\Parth\\Desktop\\Coding\\SIH\\backend\\artifacts\\models\\rod_float_risk_classifier.json",
+      "features": [
+        "floating_margin_kn",
+        "viscosity_cp",
+        "spm",
+        "pprl_kn",
+        "mprl_kn",
+        "temperature_c"
+      ],
+      "metrics": {
+        "MAE": 0.01,
+        "RMSE": 0.1,
+        "R2": 0.3656,
+        "Precision": 1.0,
+        "Recall": 0.375,
+        "F1": 0.545
+      },
+      "validation_strategy": "25% Holdout on Synthetic Trajectories",
+      "validation_status": "DEMO / NOT FIELD VALIDATED"
+    },
+    "anomaly_detector": {
+      "model_id": "MOD-ANOM-MAHALANOBIS-01",
+      "algorithm": "MahalanobisDistanceAnomalyDetector",
+      "version": "1.0.0",
+      "status": "DEMO",
+      "artifact_path": "C:\\Users\\Parth\\Desktop\\Coding\\SIH\\backend\\artifacts\\models\\telemetry_anomaly_detector.json",
+      "quantile_threshold": 0.95,
+      "validation_status": "DEMO / NOT FIELD VALIDATED"
+    }
+  }
+}

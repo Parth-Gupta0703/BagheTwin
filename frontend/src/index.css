@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --bg-base: #F5F7FA;
+    --bg-surface: #FFFFFF;
+    --bg-panel: #F8FAFC;
+    --bg-panel-hover: #F1F5F9;
+    --border-subtle: #E2E8F0;
+    --border-highlight: #CBD5E1;
+    --navy-primary: #123B5D;
+    --blue-secondary: #2563EB;
+    --teal-brand: #0E9F9A;
+    --text-primary: #172033;
+    --text-secondary: #64748B;
+    --success-green: #16A34A;
+    --warning-amber: #D97706;
+    --critical-red: #DC2626;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #F5F7FA;
+    color: #172033;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  /* Monospace typography strictly for numerical values, IDs, telemetry and metadata */
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+}
+
+/* Modern Industrial Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F5F9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Recharts Tooltip Styling - Modern Light Theme */
+.recharts-default-tooltip {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 14px rgba(18, 59, 93, 0.08) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 11px !important;
+  padding: 8px 12px !important;
+  color: #172033 !important;
+}
+
+.recharts-tooltip-item {
+  color: #172033 !important;
+  font-weight: 500 !important;
+}
+
+.recharts-tooltip-label {
+  color: #64748B !important;
+  font-weight: 600 !important;
+  margin-bottom: 4px !important;
+}
+
+/* Subtle Flow Animations */
+@keyframes flow-down {
+  0% { stroke-dashoffset: 24; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes flow-up {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 24; }
+}
+
+@keyframes rod-reciprocate {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(8px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes thermal-pulse {
+  0% { opacity: 0.65; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.02); }
+  100% { opacity: 0.65; transform: scale(1); }
+}
+
+.animate-flow-down {
+  stroke-dasharray: 4 4;
+  animation: flow-down 1.8s linear infinite;
+}
+
+.animate-flow-up {
+  stroke-dasharray: 4 4;
+  animation: flow-up 1.6s linear infinite;
+}
+
+.animate-rod {
+  animation: rod-reciprocate 2.4s ease-in-out infinite;
+}
+
+.animate-thermal-halo {
+  animation: thermal-pulse 4s ease-in-out infinite;
+  transform-origin: 320px 420px;
+}
