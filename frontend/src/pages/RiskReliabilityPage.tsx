@@ -11,6 +11,7 @@ import {
   TrendingDown,
   RotateCcw,
 } from 'lucide-react';
+import { FLOATING_MARGIN_CRITICAL_KN } from '../services/safetyThresholds';
 
 interface RiskReliabilityPageProps {
   twinState: DigitalTwinState;
@@ -25,7 +26,7 @@ export const RiskReliabilityPage: React.FC<RiskReliabilityPageProps> = ({
   const [anomalyMessage, setAnomalyMessage] = useState<string>('');
 
   const floatMargin = twinState.floating_margin_kn ?? 1.35;
-  const isCritical = floatMargin < 2.0;
+  const isCritical = floatMargin < FLOATING_MARGIN_CRITICAL_KN;
 
   const handleInjectAnomaly = async (type: string) => {
     setAnomalyLoading(true);
@@ -45,7 +46,7 @@ export const RiskReliabilityPage: React.FC<RiskReliabilityPageProps> = ({
       category: 'Downstroke Rod Float',
       severity: isCritical ? 'CRITICAL' : 'LOW',
       currentValue: `${floatMargin.toFixed(2)} kN`,
-      threshold: '≥ 2.00 kN',
+      threshold: `≥ ${FLOATING_MARGIN_CRITICAL_KN} kN`,
       status: isCritical ? 'CRITICAL RISK' : 'SAFE',
       notes: 'Annular Couette shear exceeds buoyant rod weight.',
     },
@@ -132,7 +133,7 @@ export const RiskReliabilityPage: React.FC<RiskReliabilityPageProps> = ({
             </div>
           </div>
           <p className="text-xs text-[#64748B] max-w-md">
-            Single critical constraint violation identified: Downstroke floating margin is below safety floor of 2.0 kN.
+            Single critical constraint violation identified: Downstroke floating margin is below safety floor of {FLOATING_MARGIN_CRITICAL_KN} kN.
             Immediate speed reduction or thermal re-stimulation recommended.
           </p>
         </div>

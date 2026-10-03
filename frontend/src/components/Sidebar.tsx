@@ -1,19 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  LayoutDashboard,
-  Compass,
+  Home,
+  Droplets,
+  Lightbulb,
+  Play,
+  Clock,
+  ChevronDown,
+  ChevronUp,
   Layers,
   Flame,
   Wrench,
-  FlaskConical,
   AlertTriangle,
   TrendingUp,
-  GitCompare,
+  FlaskConical,
   Radio,
-  History,
   FileCheck2,
   Cpu,
 } from 'lucide-react';
+import { useI18n } from '../i18n';
+import { useMode } from '../contexts/ModeContext';
 
 interface SidebarProps {
   currentTab: string;
@@ -21,88 +26,114 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) => {
-  const navItems = [
-    { id: 'command-center', label: 'Command Center', icon: LayoutDashboard },
-    { id: 'well-explorer', label: 'Well Explorer', icon: Compass },
-    { id: 'digital-twin', label: 'Digital Twin', icon: Layers },
-    { id: 'css-optimizer', label: 'CSS Optimizer', icon: Flame },
-    { id: 'srp-optimizer', label: 'SRP Optimizer', icon: Wrench },
-    { id: 'scenario-lab', label: 'Scenario Lab', icon: FlaskConical },
-    { id: 'risk-reliability', label: 'Risk & Reliability', icon: AlertTriangle },
-    { id: 'forecasts', label: 'Forecasts', icon: TrendingUp },
-    { id: 'before-after', label: 'Before vs After', icon: GitCompare, badge: 'OPTIMIZE' },
-    { id: 'live-ops', label: 'Live Operations', icon: Radio },
-    { id: 'audit-trail', label: 'Audit Trail', icon: History },
-    { id: 'provenance', label: 'Model & Data Provenance', icon: FileCheck2 },
+  const { t } = useI18n();
+  const { isEngineer } = useMode();
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  // Primary navigation — always visible
+  const primaryNav = [
+    { id: 'command-center', label: t.nav.home, icon: Home },
+    { id: 'well-explorer', label: t.nav.wells, icon: Droplets },
+    { id: 'recommendations', label: t.nav.recommendations, icon: Lightbulb },
+    { id: 'before-after', label: t.nav.simulate, icon: Play },
+    { id: 'audit-trail', label: t.nav.history, icon: Clock },
   ];
 
+  // "More" items — advanced/engineer sections
+  const moreNav = [
+    { id: 'digital-twin', label: t.nav.digitalTwin, icon: Layers },
+    { id: 'css-optimizer', label: t.nav.cssOptimizer, icon: Flame },
+    { id: 'srp-optimizer', label: t.nav.srpOptimizer, icon: Wrench },
+    { id: 'risk-reliability', label: t.nav.riskReliability, icon: AlertTriangle },
+    { id: 'forecasts', label: t.nav.forecasts, icon: TrendingUp },
+    { id: 'scenario-lab', label: t.nav.scenarioLab, icon: FlaskConical },
+    { id: 'live-ops', label: t.nav.liveOperations, icon: Radio },
+    { id: 'provenance', label: t.nav.provenance, icon: FileCheck2 },
+  ];
+
+  // Auto-expand "More" if current tab is in the more section
+  const isMoreTabActive = moreNav.some((item) => item.id === currentTab);
+  const showMore = moreOpen || isMoreTabActive;
+
+  const renderNavItem = (item: { id: string; label: string; icon: React.ElementType }) => {
+    const Icon = item.icon;
+    const isActive = currentTab === item.id;
+    return (
+      <button
+        key={item.id}
+        onClick={() => setCurrentTab(item.id)}
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer text-[13px] font-medium ${
+          isActive
+            ? 'bg-teal-50 text-teal-700 font-semibold border-l-[3px] border-teal-500'
+            : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+        }`}
+      >
+        <Icon
+          className={`w-[18px] h-[18px] shrink-0 ${
+            isActive ? 'text-teal-600' : 'text-slate-400'
+          }`}
+        />
+        <span className="truncate">{item.label}</span>
+      </button>
+    );
+  };
+
   return (
-    <aside className="w-60 bg-white border-r border-[#E2E8F0] flex flex-col shrink-0 select-none overflow-y-auto z-20">
-      {/* Brand & Logo Header */}
-      <div className="h-14 px-5 border-b border-[#E2E8F0] flex items-center space-x-3 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-[#123B5D] flex items-center justify-center text-white shadow-sm">
-          <Layers className="w-4 h-4 text-[#0E9F9A]" />
+    <aside className="w-60 bg-white border-r border-slate-200 flex flex-col shrink-0 select-none overflow-y-auto z-20">
+      {/* Brand Header */}
+      <div className="h-14 px-5 border-b border-slate-200 flex items-center gap-3 shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-[#123B5D] flex items-center justify-center shadow-sm">
+          <Layers className="w-4 h-4 text-teal-400" />
         </div>
         <div>
-          <div className="text-sm font-bold text-[#123B5D] tracking-tight">
-            BagheTwin
-          </div>
-          <div className="text-[10px] text-[#64748B] font-medium tracking-wide uppercase">
-            Heavy Oil Digital Twin
+          <div className="text-sm font-bold text-[#123B5D] tracking-tight">BagheTwin</div>
+          <div className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">
+            {t.appSubtitle}
           </div>
         </div>
       </div>
 
-      {/* Navigation Links */}
-      <nav className="p-3 space-y-1 flex-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentTab === item.id;
+      {/* Primary Navigation */}
+      <nav className="p-3 space-y-0.5 flex-1">
+        {primaryNav.map(renderNavItem)}
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => setCurrentTab(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2 text-left rounded-md transition-colors cursor-pointer text-xs font-medium ${
-                isActive
-                  ? 'bg-[#F0FDFA] text-[#0E9F9A] font-semibold border-l-3 border-[#0E9F9A]'
-                  : 'text-[#64748B] hover:text-[#172033] hover:bg-[#F8FAFC]'
-              }`}
-            >
-              <div className="flex items-center space-x-2.5 truncate">
-                <Icon
-                  className={`w-4 h-4 shrink-0 transition-colors ${
-                    isActive ? 'text-[#0E9F9A]' : 'text-[#64748B]'
-                  }`}
-                />
-                <span className="truncate">{item.label}</span>
-              </div>
+        {/* More Section */}
+        <div className="pt-3 mt-3 border-t border-slate-100">
+          <button
+            onClick={() => setMoreOpen(!showMore)}
+            className="w-full flex items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-600 cursor-pointer transition-colors"
+          >
+            <span>{t.nav.more}</span>
+            {showMore ? (
+              <ChevronUp className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5" />
+            )}
+          </button>
 
-              {item.badge && (
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#0E9F9A]/10 text-[#0E9F9A] font-semibold">
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+          {showMore && (
+            <div className="space-y-0.5 mt-1">
+              {moreNav.map(renderNavItem)}
+            </div>
+          )}
+        </div>
       </nav>
 
-      {/* Bottom Sidebar: Demo Mode & System Status */}
-      <div className="p-3.5 border-t border-[#E2E8F0] bg-[#F8FAFC] space-y-2 shrink-0">
+      {/* Bottom: Mode & System Status */}
+      <div className="p-3.5 border-t border-slate-200 bg-slate-50 space-y-2 shrink-0">
         <div className="flex items-center justify-between text-[11px]">
-          <span className="text-[#64748B] flex items-center space-x-1.5">
-            <Cpu className="w-3.5 h-3.5 text-[#2563EB]" />
-            <span>Mode:</span>
+          <span className="text-slate-500 flex items-center gap-1.5">
+            <Cpu className="w-3.5 h-3.5 text-blue-500" />
+            <span>{isEngineer ? t.mode.engineer : t.mode.operator}</span>
           </span>
-          <span className="font-medium text-[#172033] bg-white px-2 py-0.5 rounded border border-[#E2E8F0] text-[10px]">
-            Demo Simulation
+          <span className="font-medium text-slate-800 bg-white px-2 py-0.5 rounded border border-slate-200 text-[10px]">
+            {t.demo.demoSynthetic}
           </span>
         </div>
         <div className="flex items-center justify-between text-[11px]">
-          <span className="text-[#64748B]">System Status:</span>
-          <span className="inline-flex items-center space-x-1 text-[#16A34A] font-medium text-[11px]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
+          <span className="text-slate-500">System:</span>
+          <span className="inline-flex items-center gap-1 text-emerald-600 font-medium text-[11px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             <span>Operational</span>
           </span>
         </div>

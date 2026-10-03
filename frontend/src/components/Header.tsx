@@ -1,6 +1,8 @@
 import React from 'react';
 import { WellSummary } from '../types';
-import { ChevronDown, Sparkles, RotateCcw, Activity } from 'lucide-react';
+import { ChevronDown, Sparkles, RotateCcw } from 'lucide-react';
+import { useI18n } from '../i18n';
+import { useMode } from '../contexts/ModeContext';
 
 interface HeaderProps {
   wells: WellSummary[];
@@ -9,7 +11,6 @@ interface HeaderProps {
   onLaunchJuryDemo: () => void;
   onResetDemo?: () => void;
   currentTabTitle?: string;
-  isStreaming?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -18,85 +19,128 @@ export const Header: React.FC<HeaderProps> = ({
   setSelectedWellCode,
   onLaunchJuryDemo,
   onResetDemo,
-  currentTabTitle = 'Command Center',
-  isStreaming = true,
+  currentTabTitle = 'Home',
 }) => {
+  const { locale, setLocale, t } = useI18n();
+  const { mode, setMode } = useMode();
   const selectedWell = wells.find((w) => w.well_code === selectedWellCode);
 
   return (
-    <header className="h-14 bg-white border-b border-[#E2E8F0] px-6 flex items-center justify-between select-none z-30 sticky top-0 shrink-0 shadow-sm">
-      {/* LEFT GROUP: Breadcrumb & Current View */}
-      <div className="flex items-center space-x-4">
-        {/* Breadcrumb / Title */}
-        <div className="flex items-center space-x-2 text-sm">
-          <span className="text-[#64748B] font-medium">BagheTwin</span>
-          <span className="text-[#CBD5E1]">/</span>
-          <h1 className="text-base font-semibold text-[#172033] tracking-tight m-0">
+    <header className="h-14 bg-white border-b border-slate-200 px-4 lg:px-6 flex items-center justify-between select-none z-30 sticky top-0 shrink-0 shadow-sm">
+      {/* LEFT: Breadcrumb */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-slate-500 font-medium">BagheTwin</span>
+          <span className="text-slate-300">/</span>
+          <h1 className="text-sm font-semibold text-slate-800 tracking-tight m-0">
             {currentTabTitle}
           </h1>
         </div>
 
-        <div className="h-4 w-px bg-[#E2E8F0]" />
+        <div className="h-4 w-px bg-slate-200 hidden sm:block" />
 
-        {/* Selected Well Selector Dropdown */}
-        <div className="flex items-center space-x-2">
-          <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">
+        {/* Well Selector */}
+        <div className="hidden sm:flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
             Well:
           </span>
-          <div className="relative inline-block">
+          <div className="relative">
             <select
               value={selectedWellCode}
               onChange={(e) => setSelectedWellCode(e.target.value)}
-              className="bg-[#F8FAFC] border border-[#CBD5E1] text-[#172033] font-mono text-xs font-semibold px-2.5 py-1 pr-6 rounded-md appearance-none focus:outline-none focus:ring-1 focus:ring-[#0E9F9A] focus:border-[#0E9F9A] cursor-pointer hover:bg-white transition-colors"
+              className="bg-slate-50 border border-slate-300 text-slate-800 font-mono text-xs font-semibold px-2.5 py-1 pr-6 rounded-md appearance-none focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 cursor-pointer hover:bg-white transition-colors"
             >
               {wells.map((w) => (
                 <option key={w.well_code} value={w.well_code}>
-                  {w.well_code} {w.status === 'CRITICAL' ? '● CRITICAL' : `(${w.status})`}
+                  {w.well_code} {w.overall_risk_tier === 'CRITICAL' ? '● CRITICAL' : ''}
                 </option>
               ))}
             </select>
-            <ChevronDown className="w-3.5 h-3.5 text-[#64748B] absolute right-1.5 top-2 pointer-events-none" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-1.5 top-2 pointer-events-none" />
           </div>
           {selectedWell && selectedWell.overall_risk_tier === 'CRITICAL' && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#DC2626]/10 text-[#DC2626] border border-[#DC2626]/20">
-              Needs Immediate Attention
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-red-50 text-red-700 border border-red-200">
+              {t.status.critical}
             </span>
           )}
         </div>
       </div>
 
-      {/* CENTER GROUP: Clean System Status Indicator */}
-      <div className="hidden lg:flex items-center space-x-2 bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-1 rounded-full text-xs">
-        <span className={`w-2 h-2 rounded-full ${isStreaming ? 'bg-[#0E9F9A]' : 'bg-[#DC2626]'}`} />
-        <span className="text-[#172033] font-medium">Digital Twin Live</span>
-        <span className="text-[#64748B] text-[11px] font-mono">1.5 Hz Coupled</span>
-      </div>
-
-      {/* RIGHT GROUP: Synthetic Data Badge & Actions */}
-      <div className="flex items-center space-x-3">
-        {/* Subtle Synthetic Badge */}
-        <div className="hidden sm:inline-flex items-center space-x-1.5 px-2.5 py-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-md text-[11px] font-medium text-[#64748B]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
-          <span>DEMO • SYNTHETIC DATA</span>
+      {/* RIGHT: Controls */}
+      <div className="flex items-center gap-2">
+        {/* Mode Toggle */}
+        <div className="hidden md:flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+          <button
+            onClick={() => setMode('operator')}
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              mode === 'operator'
+                ? 'bg-white text-teal-700 shadow-sm border border-slate-200'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {t.mode.operator}
+          </button>
+          <button
+            onClick={() => setMode('engineer')}
+            className={`px-3 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              mode === 'engineer'
+                ? 'bg-white text-blue-700 shadow-sm border border-slate-200'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {t.mode.engineer}
+          </button>
         </div>
 
+        {/* Language Toggle */}
+        <div className="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+          <button
+            onClick={() => setLocale('en')}
+            className={`px-2 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              locale === 'en'
+                ? 'bg-white text-slate-800 shadow-sm border border-slate-200'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            EN
+          </button>
+          <button
+            onClick={() => setLocale('hi')}
+            className={`px-2 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
+              locale === 'hi'
+                ? 'bg-white text-slate-800 shadow-sm border border-slate-200'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            हिंदी
+          </button>
+        </div>
+
+        {/* Synthetic Badge */}
+        <div className="hidden lg:inline-flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-200 rounded-md text-[11px] font-medium text-slate-500">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+          <span>{t.demo.demoSynthetic}</span>
+        </div>
+
+        {/* Reset */}
         {onResetDemo && (
           <button
             onClick={onResetDemo}
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-white hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#172033] border border-[#E2E8F0] rounded-md text-xs font-medium transition-colors cursor-pointer"
-            title="Reset demonstration state to baseline"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-700 border border-slate-200 rounded-md text-xs font-medium transition-colors cursor-pointer"
+            title={t.actions.reset}
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Reset State</span>
+            <span className="hidden md:inline">{t.actions.reset}</span>
           </button>
         )}
 
+        {/* Guided Demo CTA */}
         <button
           onClick={onLaunchJuryDemo}
-          className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-[#0E9F9A] hover:bg-[#0C8984] text-white font-medium text-xs rounded-md shadow-sm transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-medium text-xs rounded-md shadow-sm transition-all cursor-pointer active:scale-95"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Jury Demo</span>
+          <span className="hidden sm:inline">{t.demo.startDemo}</span>
         </button>
       </div>
     </header>

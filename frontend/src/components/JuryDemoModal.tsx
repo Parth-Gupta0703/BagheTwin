@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
 import {
-  CheckCircle2,
   ChevronRight,
   ChevronLeft,
   X,
-  Sparkles,
+  Play,
   RotateCcw,
+  Volume2,
+  VolumeX,
+  Search,
+  Layers,
+  Lightbulb,
+  Shield,
+  Zap,
+  Activity,
+  CheckCircle2,
 } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 interface JuryDemoModalProps {
   isOpen: boolean;
@@ -23,266 +32,270 @@ export const JuryDemoModal: React.FC<JuryDemoModalProps> = ({
   onSelectWell,
   onResetDemo,
 }) => {
+  const { t } = useI18n();
   const [step, setStep] = useState(1);
+  const [showSpeakerNotes, setShowSpeakerNotes] = useState(true);
 
   if (!isOpen) return null;
 
   const steps = [
     {
       step: 1,
-      title: '01 Field Overview',
-      phase: 'STAGE 01 / 08',
+      title: t.demo.step1,
+      question: t.demo.step1q,
+      shortTitle: '01 Fleet',
       tab: 'command-center',
       well: 'BGW-007',
-      description: 'Fleet surveillance across 12 synthetic well archetypes in Rajasthan Basin.',
+      icon: Activity,
+      color: 'teal',
+      description:
+        'The Command Center shows 12 monitored Rajasthan heavy oil wells. Fleet health is summarized: 9 Normal, 2 Need Attention, 1 Critical. The system immediately identifies BGW-007 as the priority.',
       speakerScript:
-        '"Honorable Jury, welcome to BagheTwin. Notice our global governance header: the system operates strictly in Simulation Mode on synthetic demonstration data. We monitor a 12-well heavy crude fleet in the Baghewala Jodhpur Sandstone formation."',
-      focusHighlight: '12 SYNTHETIC WELLS • 100% LABELLED DEMO • NO DIRECT PHYSICAL ACTUATION',
-      actionLabel: 'Select Well BGW-007',
+        '"BagheTwin continuously monitors our Rajasthan heavy oil fleet. Right now, 12 wells are tracked. The system identifies BGW-007 as the single critical well requiring immediate attention."',
+      focusHighlight: '12 WELLS MONITORED • 1 CRITICAL (BGW-007) • 2 ATTENTION • 9 NORMAL',
+      actionLabel: 'Identify Critical Well',
     },
     {
       step: 2,
-      title: '02 Select BGW-007',
-      phase: 'STAGE 02 / 08',
+      title: t.demo.step2,
+      question: t.demo.step2q,
+      shortTitle: '02 Priority',
       tab: 'well-explorer',
       well: 'BGW-007',
-      description: 'Isolate primary demonstration well BGW-007 exhibiting acute mechanical distress.',
+      icon: Search,
+      color: 'red',
+      description:
+        'Well BGW-007 is flagged CRITICAL. Its floating margin is 1.35 kN — below the 2.0 kN safety threshold. Temperature has dropped to 49°C, causing crude viscosity to spike to 12,089 cP.',
       speakerScript:
-        '"We select our focal demonstration well: BGW-007. BGW-007 is in a late thermal cooling phase, flagged as CRITICAL. Notice its high pumping speed against cold, highly viscous crude."',
-      focusHighlight: 'FOCAL TARGET: BGW-007 (CRITICAL ARCHETYPE: HIGH FLOATING RISK)',
-      actionLabel: 'Inspect Digital Twin',
+        '"Well BGW-007 is the priority. Temperature has cooled to 49°C, causing viscosity to spike to over 12,000 cP. The floating safety margin is 1.35 kN — critically below the 2.0 kN threshold."',
+      focusHighlight: 'BGW-007 • CRITICAL • MARGIN: 1.35 kN (< 2.0 kN THRESHOLD)',
+      actionLabel: 'Understand Root Cause',
     },
     {
       step: 3,
-      title: '03 Digital Twin Causal Flow',
-      phase: 'STAGE 03 / 08',
+      title: t.demo.step3,
+      question: t.demo.step3q,
+      shortTitle: '03 Explain',
       tab: 'digital-twin',
       well: 'BGW-007',
-      description: 'Coupled causal flow from steam thermodynamics to downhole mechanical risk.',
+      icon: Layers,
+      color: 'amber',
+      description:
+        'The Digital Twin shows the cause-effect chain: Steam heat dissipation → Temperature drops → Viscosity spikes → Rod drag increases → Floating margin falls below safety threshold.',
       speakerScript:
-        '"In our Digital Twin workspace, our 8-stage causal chain reveals the multi-physics coupling: Heat has decayed to 49.0°C. Crude viscosity has surged to 12,089 cP, causing 44.6 kN downstroke drag opposing rod string descent."',
-      focusHighlight: 'CAUSAL CHAIN: STEAM → TEMP (49°C) → VISCOSITY (12,089 cP) → DRAG (44.6 kN) → MARGIN (<2 kN)',
-      actionLabel: 'Inspect SRP Kinematics',
+        '"The Digital Twin explains WHY this happened. Two separate chains show: (1) the CURRENT degradation — temperature decline is driving exponential viscosity increase and rod-float hazard; (2) the EXPECTED intervention — steam injection would reverse the chain."',
+      focusHighlight: 'TEMP ↓ → VISCOSITY ↑ → DRAG ↑ → MARGIN ↓ → RISK ↑',
+      actionLabel: 'View Recommendation',
     },
     {
       step: 4,
-      title: '04 SRP Kinematic Diagnosis',
-      phase: 'STAGE 04 / 08',
-      tab: 'srp-optimizer',
+      title: t.demo.step4,
+      question: t.demo.step4q,
+      shortTitle: '04 Recommend',
+      tab: 'recommendations',
       well: 'BGW-007',
-      description: 'Dynacard diagnostic shows downstroke drag depressing minimum load to 1.35 kN.',
+      icon: Lightbulb,
+      color: 'amber',
+      description:
+        'A safety-checked recommendation is generated: reduce SRP speed to 4.8 SPM, lengthen stroke to 144", and schedule CSS Cycle 5 thermal injection.',
       speakerScript:
-        '"The surface dynamometer card confirms carrier-bar separation risk: downstroke viscous shear prevents the sucker rod string from falling at pump stroke speed."',
-      focusHighlight: 'SAFETY BREACH: FLOATING MARGIN IS 1.35 kN (BELOW 2.0 kN SAFETY FLOOR)',
-      actionLabel: 'Evaluate CSS Thermal Slug',
+        '"The system generates a clear recommendation: slower pump speed, longer stroke, and thermal re-stimulation. Each recommendation shows WHY it was chosen, the primary driver, safety constraint, and optimization objective."',
+      focusHighlight: 'WHY: ROD FLOAT RISK • SAFETY: MARGIN ≥ 2.0 kN • OBJECTIVE: MAX OIL + SAFE',
+      actionLabel: 'Validate Safety',
     },
     {
       step: 5,
-      title: '05 CSS Thermal Sizing',
-      phase: 'STAGE 05 / 08',
+      title: t.demo.step5,
+      question: t.demo.step5q,
+      shortTitle: '05 Validate',
       tab: 'css-optimizer',
       well: 'BGW-007',
-      description: 'Thermal stimulation sizing under caprock fracture pressure constraints.',
+      icon: Shield,
+      color: 'emerald',
+      description:
+        'The CSS Optimizer sizes Cycle 5: 2,200 tonnes of steam at 85 bar. The system validates that injection pressure remains below the 100 bar caprock fracture limit.',
       speakerScript:
-        '"In the CSS Optimizer, sizing Cycle 5 to 2,200 tonnes @ 85 bar collapses crude viscosity from 12,089 cP to 185 cP without violating the 100 bar geomechanical boundary."',
-      focusHighlight: 'THERMAL RECOVERY: CRUDE VISCOSITY DROPS TO 185 cP • PRESSURE SAFE (< 100 BAR)',
-      actionLabel: 'Joint Multi-Physics Optimization',
+        '"Before execution, we validate the intervention is SAFE. Steam injection of 2,200 tonnes at 85 bar stays well below the 100 bar fracture gradient. Viscosity is predicted to collapse from 12,089 cP to 185 cP."',
+      focusHighlight: '2,200t STEAM @ 85 BAR • PRESSURE: 85 < 100 BAR (SAFE) • VISCOSITY: 12,089 → 185 cP',
+      actionLabel: 'Run Simulation',
     },
     {
       step: 6,
-      title: '06 Joint Pareto Optimization',
-      phase: 'STAGE 06 / 08',
+      title: t.demo.step6,
+      question: t.demo.step6q,
+      shortTitle: '06 Simulate',
       tab: 'before-after',
       well: 'BGW-007',
-      description: 'Multi-objective search simultaneously tunes CSS steam slug and SRP kinematics.',
+      icon: Play,
+      color: 'blue',
+      description:
+        'Side-by-side comparison: Current vs Recommended. Floating margin improves from 1.35 kN to 5.15 kN. Oil production lifts from 31.0 to 55.2 BOPD. Risk drops from CRITICAL to LOW.',
       speakerScript:
-        '"The Joint Optimizer evaluates Pareto candidates: 22 candidates are automatically rejected due to safety violations, leaving the optimal recommendation: slow SPM to 4.8, stroke 144", and size Cycle 5 steam."',
-      focusHighlight: 'PARETO OPTIMAL: +24.2 BOPD • MARGIN RESTORED TO 5.15 kN • HARD SAFETY ENFORCED',
-      actionLabel: 'Verify Risk & Reliability',
+        '"The simulation result is dramatic: floating margin jumps from 1.35 to 5.15 kN — well above the 2.0 kN threshold. Production lifts to 55.2 BOPD. Rod-float risk is eliminated."',
+      focusHighlight: 'MARGIN: 1.35 → 5.15 kN (SAFE) • OIL: 31.0 → 55.2 BOPD • RISK: CRITICAL → LOW',
+      actionLabel: 'Confirm Safer State',
     },
     {
       step: 7,
-      title: '07 Risk Matrix & Anomaly Test',
-      phase: 'STAGE 07 / 08',
-      tab: 'risk-reliability',
+      title: t.demo.step7,
+      question: t.demo.step7q,
+      shortTitle: '07 Confirm',
+      tab: 'audit-trail',
       well: 'BGW-007',
-      description: 'Continuous monitoring of structural, thermal, and mechanical safety thresholds.',
+      icon: CheckCircle2,
+      color: 'emerald',
+      description:
+        'The Audit Trail records operator approval, every parameter change, and provides an immutable compliance record for field governance.',
       speakerScript:
-        '"Our Risk & Reliability matrix tracks all safety boundaries. Red is strictly reserved for critical violations, giving control room operators clear signal without alarm fatigue."',
-      focusHighlight: 'SEMANTIC SAFETY: RED FOR HARD LIMITS ONLY • LIVE TELEMETRY ANOMALY TESTING',
-      actionLabel: 'Audit Trail & Provenance',
-    },
-    {
-      step: 8,
-      title: '08 Audit Trail & Governance',
-      phase: 'STAGE 08 / 08',
-      tab: 'provenance',
-      well: 'BGW-007',
-      description: 'Complete data provenance, model equations, and human-in-the-loop audit logging.',
-      speakerScript:
-        '"Every recommendation and operator action is cryptographically logged in our immutable Audit Trail. All physics models and synthetic benchmark data sources are fully documented for jury verification."',
-      focusHighlight: 'FULL TRANSPARENCY: AUDIT LOGGED • GOVERNANCE DOCUMENTED • VERIFIED DETERMINISTIC',
-      actionLabel: 'Return to Command Center',
+        '"Finally, the system records the entire decision pathway: from detection to recommendation to simulation to approval. Every decision is traceable, providing full transparency and accountability."',
+      focusHighlight: 'IMMUTABLE AUDIT TRAIL • HUMAN-IN-THE-LOOP • DECISION SUPPORT ONLY',
+      actionLabel: 'Complete Demo',
     },
   ];
 
-  const currentStep = steps[step - 1];
+  const current = steps[step - 1];
+  const IconComponent = current.icon;
+
+  const handleStepChange = (newStep: number) => {
+    setStep(newStep);
+    const target = steps[newStep - 1];
+    onSelectWell(target.well);
+    onNavigateTab(target.tab);
+  };
 
   const handleNext = () => {
     if (step < steps.length) {
-      const nextStep = step + 1;
-      setStep(nextStep);
-      onNavigateTab(steps[nextStep - 1].tab);
-      onSelectWell(steps[nextStep - 1].well);
+      handleStepChange(step + 1);
     } else {
-      onNavigateTab('command-center');
       onClose();
     }
   };
 
   const handlePrev = () => {
     if (step > 1) {
-      const prevStep = step - 1;
-      setStep(prevStep);
-      onNavigateTab(steps[prevStep - 1].tab);
-      onSelectWell(steps[prevStep - 1].well);
+      handleStepChange(step - 1);
     }
   };
 
+  const colorMap: Record<string, { bg: string; text: string; border: string; active: string }> = {
+    teal: { bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-200', active: 'bg-teal-600' },
+    red: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', active: 'bg-red-600' },
+    amber: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', active: 'bg-amber-600' },
+    emerald: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', active: 'bg-emerald-600' },
+    blue: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', active: 'bg-blue-600' },
+  };
+
+  const cc = colorMap[current.color] || colorMap.teal;
+
   return (
-    <div className="fixed inset-0 z-50 bg-[#172033]/60 backdrop-blur-xs flex flex-col p-4 md:p-8 font-sans select-none overflow-hidden">
-      {/* Top Bar of Modal */}
-      <div className="bg-white border border-[#E2E8F0] rounded-t-xl px-6 py-4 flex items-center justify-between shrink-0 shadow-sm max-w-5xl w-full mx-auto">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-[#0E9F9A]/10 text-[#0E9F9A] flex items-center justify-center">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-[#172033]">
-              BagheTwin Guided Jury Demonstration
-            </h1>
-            <p className="text-xs text-[#64748B]">
-              Step-by-step walkthrough of heavy oil digital twin capabilities
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          <span className="text-[11px] font-semibold text-[#D97706] bg-[#D97706]/10 border border-[#D97706]/20 px-2.5 py-1 rounded">
-            DEMO • SYNTHETIC DATA
-          </span>
-          {onResetDemo && (
-            <button
-              onClick={() => {
-                onResetDemo();
-                setStep(1);
-              }}
-              className="flex items-center space-x-1 px-2.5 py-1 bg-white hover:bg-[#F8FAFC] text-[#64748B] border border-[#CBD5E1] text-xs font-medium rounded cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Demo</span>
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#172033] rounded cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Stepper Progress Bar */}
-      <div className="py-2.5 px-6 bg-[#F8FAFC] border-x border-[#E2E8F0] flex items-center justify-between overflow-x-auto gap-2 shrink-0 max-w-5xl w-full mx-auto">
-        {steps.map((s) => (
-          <button
-            key={s.step}
-            onClick={() => {
-              setStep(s.step);
-              onNavigateTab(s.tab);
-              onSelectWell(s.well);
-            }}
-            className={`flex items-center space-x-1.5 px-3 py-1.5 text-xs rounded-md transition-all cursor-pointer whitespace-nowrap ${
-              s.step === step
-                ? 'bg-[#0E9F9A] text-white font-semibold shadow-sm'
-                : s.step < step
-                ? 'bg-white border border-[#CBD5E1] text-[#16A34A] font-medium'
-                : 'bg-white border border-[#E2E8F0] text-[#64748B]'
-            }`}
-          >
-            <span>{s.step}.</span>
-            <span>{s.title}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Main Focus Card */}
-      <div className="flex-1 bg-white border border-[#E2E8F0] rounded-b-xl p-6 md:p-8 flex flex-col justify-between max-w-5xl w-full mx-auto shadow-lg overflow-y-auto">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 relative flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className={`w-8 h-8 rounded-lg ${cc.bg} flex items-center justify-center`}>
+              <IconComponent className={`w-4 h-4 ${cc.text}`} />
+            </div>
             <div>
-              <span className="text-[11px] font-bold text-[#0E9F9A] uppercase tracking-wider">
-                {currentStep.phase}
-              </span>
-              <h2 className="text-xl font-bold text-[#172033] mt-0.5">
-                {currentStep.title}
-              </h2>
-            </div>
-            <div className="text-right">
-              <span className="text-[10px] text-[#64748B] uppercase block">TARGET VIEW</span>
-              <span className="text-xs font-mono font-bold text-[#0E9F9A] uppercase">
-                {currentStep.tab}
-              </span>
+              <h3 className="text-sm font-bold text-slate-800">
+                {t.demo.quickTitle} — {step}/{steps.length}
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {current.question}
+              </p>
             </div>
           </div>
-
-          {/* Focal Highlight Badge */}
-          <div className="p-3 bg-[#F0FDFA] border border-[#0E9F9A]/30 text-xs font-mono font-bold text-[#0E9F9A] text-center rounded-md">
-            {currentStep.focusHighlight}
-          </div>
-
-          {/* Description */}
-          <p className="text-sm text-[#172033] leading-relaxed">
-            {currentStep.description}
-          </p>
-
-          {/* Teleprompter / Speaker Script */}
-          <div className="p-4 bg-[#F8FAFC] border-l-4 border-[#0E9F9A] rounded-r-md space-y-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#0E9F9A] block">
-              SPEAKER PRESENTATION SCRIPT (WHAT TO SAY TO JURY):
-            </span>
-            <p className="text-sm text-[#172033] italic leading-relaxed font-serif">
-              {currentStep.speakerScript}
-            </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSpeakerNotes(!showSpeakerNotes)}
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md cursor-pointer transition-colors"
+              title={showSpeakerNotes ? 'Hide presenter notes' : 'Show presenter notes'}
+            >
+              {showSpeakerNotes ? <Volume2 className="w-4 h-4 text-teal-600" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-slate-600 rounded-md cursor-pointer transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
-        {/* Modal Controls Footer */}
-        <div className="pt-6 border-t border-[#E2E8F0] flex items-center justify-between gap-4 text-xs font-medium">
-          <button
-            onClick={handlePrev}
-            disabled={step === 1}
-            className={`flex items-center space-x-1.5 px-4 py-2 rounded-md border ${
-              step === 1
-                ? 'border-[#E2E8F0] text-[#CBD5E1] cursor-not-allowed'
-                : 'border-[#CBD5E1] bg-white text-[#172033] hover:bg-[#F8FAFC] cursor-pointer'
-            }`}
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Previous Step</span>
-          </button>
+        {/* Step Progress */}
+        <div className="px-6 py-2.5 flex items-center justify-between gap-1 overflow-x-auto border-b border-slate-100 bg-slate-50/50">
+          {steps.map((s) => (
+            <button
+              key={s.step}
+              onClick={() => handleStepChange(s.step)}
+              className={`px-2 py-1 rounded-md text-[10px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                step === s.step
+                  ? `${cc.active} text-white shadow-sm`
+                  : step > s.step
+                  ? 'bg-teal-50 text-teal-700 hover:bg-teal-100'
+                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              }`}
+            >
+              {s.shortTitle}
+            </button>
+          ))}
+        </div>
 
-          <div className="text-[#64748B]">
-            Step {step} of {steps.length}
+        {/* Body */}
+        <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+          <div>
+            <h4 className="text-base font-bold text-slate-800 mb-1">{current.title}</h4>
+            <p className="text-sm text-slate-600 leading-relaxed">{current.description}</p>
           </div>
 
-          <button
-            onClick={handleNext}
-            className="flex items-center space-x-2 px-5 py-2.5 bg-[#0E9F9A] hover:bg-[#0C8984] text-white font-semibold rounded-md shadow-sm cursor-pointer active:scale-95"
-          >
-            <span>{currentStep.actionLabel}</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          {/* Focus Highlight */}
+          <div className={`p-3 ${cc.bg} border ${cc.border} rounded-xl text-xs font-mono font-bold ${cc.text}`}>
+            {current.focusHighlight}
+          </div>
+
+          {/* Speaker Notes */}
+          {showSpeakerNotes && (
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                Presenter Script
+              </span>
+              <p className="text-xs text-slate-700 italic leading-relaxed">
+                {current.speakerScript}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            {onResetDemo && (
+              <button
+                onClick={onResetDemo}
+                className="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{t.actions.reset}</span>
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrev}
+              disabled={step === 1}
+              className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg transition-colors disabled:opacity-30 cursor-pointer flex items-center gap-1"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>{t.actions.back}</span>
+            </button>
+            <button
+              onClick={handleNext}
+              className={`px-5 py-2 text-xs font-semibold ${cc.active} hover:opacity-90 text-white rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1.5 active:scale-95`}
+            >
+              <span>{step === steps.length ? t.actions.close : current.actionLabel}</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

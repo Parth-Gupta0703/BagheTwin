@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import { DigitalTwinState, DynacardData } from '../types';
 import { DynacardChart } from '../components/DynacardChart';
+import { WellGraphic } from '../components/WellGraphic';
+import { StatusBadge } from '../components/StatusBadge';
+import { InfoTooltip } from '../components/InfoTooltip';
+import { useI18n } from '../i18n';
+import { useMode } from '../contexts/ModeContext';
 import {
-  Flame,
   Thermometer,
   Droplets,
-  Gauge,
   Zap,
+  ShieldAlert,
+  Sliders,
   Activity,
   ArrowRight,
   ArrowDown,
-  AlertTriangle,
-  CheckCircle2,
-  Info,
-  ShieldCheck,
-  ChevronRight,
-  Sliders,
+  Layers,
 } from 'lucide-react';
+import { FLOATING_MARGIN_CRITICAL_KN, classifyFloatingMargin, getMarginColorClass, getMarginBgClass } from '../services/safetyThresholds';
 
 interface DigitalTwinPageProps {
   twinState: DigitalTwinState;
@@ -29,8 +30,9 @@ export const DigitalTwinPage: React.FC<DigitalTwinPageProps> = ({
   dynacard,
   onNavigateTab,
 }) => {
-  const [selectedChainIdx, setSelectedChainIdx] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'overview' | 'dynacard' | 'engineering'>('overview');
+  const { t } = useI18n();
+  const { isOperator, isEngineer } = useMode();
+  const [activeTab, setActiveTab] = useState<'overview' | 'dynacard' | 'physics'>('overview');
 
   const tRes = twinState.thermal?.reservoir_temp_c ?? twinState.temperature_c ?? 49.5;
   const visc = twinState.thermal?.viscosity_cp ?? twinState.viscosity_cp ?? 12089;
@@ -39,393 +41,322 @@ export const DigitalTwinPage: React.FC<DigitalTwinPageProps> = ({
   const mprl = twinState.srp?.mprl_kn ?? twinState.mprl_kn ?? 12.3;
   const floatMargin = twinState.srp?.downstroke_floating_margin_kn ?? twinState.floating_margin_kn ?? 1.35;
   const viscousDrag = twinState.srp?.viscous_drag_force_kn ?? twinState.drag_force_kn ?? 44.6;
-  const steamMass = twinState.steam_mass_tonnes ?? 1800;
-  const injectionP = twinState.injection_pressure_bar ?? 85;
+  const spm = twinState.srp?.spm ?? twinState.spm ?? 6.8;
+  const strokeIn = twinState.stroke_in ?? 120;
+  const fluidLevelM = twinState.wellbore?.dynamic_fluid_level_m ?? twinState.fluid_level_depth_m ?? 820;
 
-  const isCritical = floatMargin < 2.0;
+  const marginTier = classifyFloatingMargin(floatMargin);
+  const isCritical = marginTier === 'CRITICAL';
 
-  // The 8-step Hero Causal Chain as requested
-  const causalChain = [
-    {
-      id: 'steam',
-      name: 'STEAM',
-      metric: `${steamMass} t @ ${injectionP} bar`,
-      status: 'Injected',
-      desc: 'Cyclic steam stimulation transfers thermal enthalpy to rock matrix and reservoir fluids.',
-      formula: 'Q_steam = m_steam · (h_f + x · h_fg)',
-      tag: 'Thermal Input',
-    },
-    {
-      id: 'temperature',
-      name: 'TEMPERATURE',
-      metric: `${tRes.toFixed(1)}°C`,
-      status: tRes < 55 ? 'Cooling' : 'Adequate',
-      desc: 'Conductive heat dissipation into overburden cools the near-wellbore drainage cylinder.',
-      formula: 'T(t) = T_initial + ΔT · exp(-λ·t)',
-      tag: 'Heat Transfer',
-    },
-    {
-      id: 'viscosity',
-      name: 'VISCOSITY',
-      metric: `${visc.toLocaleString()} cP`,
-      status: visc > 10000 ? 'Extreme' : 'Nominal',
-      desc: 'Heavy crude exhibits exponential thermal thinning governed by the Andrade-Arrhenius model.',
-      formula: 'μ(T) = μ_ref · exp[B · (1/T - 1/T_ref)]',
-      tag: 'Rheology',
-    },
-    {
-      id: 'mobility',
-      name: 'MOBILITY / INFLOW',
-      metric: `${(850 / visc).toFixed(4)} mD/cP`,
-      status: 'Impaired',
-      desc: 'Permeability-to-viscosity ratio controls radial Darcy inflow rate into the slotted liner.',
-      formula: 'q_inflow = J · (P_res - P_wf), where J ∝ k / μ',
-      tag: 'Reservoir Deliverability',
-    },
-    {
-      id: 'srp-load',
-      name: 'SRP LOAD',
-      metric: `${pprl.toFixed(1)} kN`,
-      status: 'High Load',
-      desc: 'Peak and minimum polished rod loads vary with mechanical acceleration and fluid weight.',
-      formula: 'PPRL = W_buoyant + ΔP_valve + F_dynamic',
-      tag: 'Surface Mechanics',
-    },
-    {
-      id: 'rod-drag',
-      name: 'ROD DRAG',
-      metric: `${viscousDrag.toFixed(1)} kN`,
-      status: 'Elevated',
-      desc: 'Couette annular shear along the sucker rod string acts upward against downstroke motion.',
-      formula: 'F_drag = π · d_rod · L · τ_wall(μ, v_down)',
-      tag: 'Annular Fluid Shear',
-    },
-    {
-      id: 'floating-risk',
-      name: 'FLOATING RISK',
-      metric: `${floatMargin.toFixed(2)} kN`,
-      status: isCritical ? 'Critical Hazard' : 'Acceptable',
-      desc: 'When downstroke drag exceeds buoyant rod string weight, polished rod separates from bridle.',
-      formula: 'Margin = W_buoyant · (1 - α) - F_drag  [Floor: 2.0 kN]',
-      tag: 'Safety Constraint',
-    },
-    {
-      id: 'production',
-      name: 'PRODUCTION',
-      metric: `${oilRate.toFixed(1)} BOPD`,
-      status: 'Restricted',
-      desc: 'Final surface fluid deliverability after volumetric pump fillage and separation efficiency.',
-      formula: 'Q_net = min(q_inflow, q_displacement) · (1 - WC)',
-      tag: 'Surface Deliverability',
-    },
-  ];
-
-  const selectedStep = causalChain[selectedChainIdx];
+  // Narrative label
+  const pipelineLabel = t.pipeline.explain;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-8 font-sans">
-      {/* Top Header Card */}
-      <div className="bg-white border border-[#E2E8F0] rounded-lg p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-5 max-w-7xl mx-auto pb-8 font-sans">
+      {/* 1. Header Bar */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2">
-            <h2 className="text-base font-bold text-[#172033]">
-              Digital Twin: Coupled Causal Architecture
-            </h2>
-            <span className="text-xs font-mono px-2 py-0.5 rounded bg-[#F8FAFC] border border-[#CBD5E1] text-[#172033] font-semibold">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-blue-50 border border-blue-200">
+              <Layers className="w-3 h-3 text-blue-600" />
+              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">{pipelineLabel}</span>
+            </div>
+            <h2 className="text-lg font-bold text-slate-800">{t.twin.title}</h2>
+            <span className="font-mono text-sm px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 font-semibold">
               {twinState.well_code}
             </span>
+            <StatusBadge tier={twinState.overall_risk_tier} size="sm" />
           </div>
-          <p className="text-xs text-[#64748B] mt-0.5">
-            Deterministic forward physics model connecting cyclic steam thermodynamics to downhole rod kinematics.
-          </p>
+          <p className="text-xs text-slate-500 mt-1">{t.twin.subtitle}</p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => onNavigateTab('css-optimizer')}
-            className="px-3 py-1.5 bg-white hover:bg-[#F8FAFC] text-[#123B5D] border border-[#CBD5E1] rounded-md text-xs font-medium transition-colors cursor-pointer"
+            onClick={() => onNavigateTab('recommendations')}
+            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all cursor-pointer flex items-center gap-1.5 active:scale-95"
           >
-            Tune CSS Parameters
+            <Sliders className="w-3.5 h-3.5" />
+            <span>{t.rec.title}</span>
           </button>
           <button
-            onClick={() => onNavigateTab('srp-optimizer')}
-            className="px-3 py-1.5 bg-[#0E9F9A] hover:bg-[#0C8984] text-white rounded-md text-xs font-medium shadow-sm transition-all cursor-pointer"
+            onClick={() => onNavigateTab('before-after')}
+            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            Tune SRP Kinematics
+            <span>{t.sim.title}</span>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
           </button>
         </div>
       </div>
 
-      {/* HERO VISUALIZATION: THE CAUSAL CHAIN */}
-      <div className="bg-white border border-[#E2E8F0] rounded-lg p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#0E9F9A]">
-              Hero Multi-Physics Chain
-            </span>
-            <h3 className="text-sm font-semibold text-[#172033]">
-              Thermal Injection to Downhole Mechanical Risk Flow
-            </h3>
-          </div>
-          <span className="text-xs text-[#64748B]">Click any step to inspect governing physics</span>
-        </div>
-
-        {/* 8-Step Grid / Flow */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2.5">
-          {causalChain.map((step, idx) => {
-            const isSelected = selectedChainIdx === idx;
-            const isRiskStep = step.id === 'floating-risk';
-
-            return (
-              <div
-                key={step.id}
-                onClick={() => setSelectedChainIdx(idx)}
-                className={`relative p-3 rounded-lg border text-left cursor-pointer transition-all flex flex-col justify-between h-32 ${
-                  isSelected
-                    ? 'border-[#0E9F9A] bg-[#F0FDFA] ring-2 ring-[#0E9F9A]/20 shadow-sm'
-                    : isRiskStep && isCritical
-                    ? 'border-[#DC2626]/40 bg-[#DC2626]/5 hover:bg-[#DC2626]/10'
-                    : 'border-[#E2E8F0] bg-[#F8FAFC] hover:bg-white hover:border-[#CBD5E1]'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-[#64748B] mb-1">
-                    <span>0{idx + 1}</span>
-                    {idx < 7 && <ArrowRight className="w-3 h-3 text-[#94A3B8] hidden lg:block" />}
-                  </div>
-                  <div className="text-xs font-bold text-[#172033] leading-tight">
-                    {step.name}
-                  </div>
-                </div>
-
-                <div>
-                  <div
-                    className={`text-sm font-bold font-mono ${
-                      isRiskStep && isCritical
-                        ? 'text-[#DC2626]'
-                        : isSelected
-                        ? 'text-[#0E9F9A]'
-                        : 'text-[#172033]'
-                    }`}
-                  >
-                    {step.metric}
-                  </div>
-                  <div className="text-[10px] text-[#64748B] mt-0.5 truncate">
-                    {step.tag}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Selected Step Governing Physics Deep Dive */}
-        <div className="mt-4 p-4 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold text-[#0E9F9A]">
-                Step 0{selectedChainIdx + 1} • {selectedStep.name}
+      {/* 2. Hero Section: Left Well Profile Graphic vs Right Live State Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        {/* LEFT: Well Profile Graphic (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex-1 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                {t.twin.wellProfile}
               </span>
-              <span className="text-xs font-mono bg-white px-2 py-0.5 rounded border border-[#E2E8F0] text-[#172033]">
-                {selectedStep.metric}
-              </span>
+              <span className="text-[11px] font-mono text-slate-400">0 – 1,240m MD</span>
             </div>
-            <p className="text-xs text-[#64748B]">{selectedStep.desc}</p>
-          </div>
 
-          <div className="p-2.5 bg-white border border-[#CBD5E1] rounded font-mono text-xs text-[#123B5D] shrink-0">
-            <span className="text-[10px] text-[#64748B] block font-sans font-medium">Governing Equation:</span>
-            {selectedStep.formula}
+            <div className="flex-1 flex items-center justify-center">
+              <WellGraphic
+                temperatureC={tRes}
+                viscosityCp={visc}
+                floatingMarginKn={floatMargin}
+                spm={spm}
+                fluidLevelM={fluidLevelM}
+                isCritical={isCritical}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: Live State KPI Dashboard (7 cols) */}
+        <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-teal-600" />
+                <h3 className="text-sm font-bold text-slate-800">{t.twin.liveState}</h3>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono">Real-time coupled state</span>
+            </div>
+
+            {/* 4 Primary Operational Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Temperature */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 transition-all hover:border-slate-300">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                    <Thermometer className="w-4 h-4 text-amber-500" />
+                    <span>{t.wells.temperature}</span>
+                  </div>
+                  <InfoTooltip label={t.wells.temperature} description={t.tooltips.temperature} />
+                </div>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-2xl font-bold font-mono text-slate-800">{tRes.toFixed(1)}</span>
+                  <span className="text-xs text-slate-500">{t.units.celsius}</span>
+                </div>
+                <div className="mt-1 text-[11px] text-amber-700 font-medium">
+                  {tRes < 55 ? t.wellExplain.thermalDeclineDesc : 'Normal thermal regime'}
+                </div>
+              </div>
+
+              {/* Viscosity */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 transition-all hover:border-slate-300">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                    <Droplets className="w-4 h-4 text-blue-500" />
+                    <span>{isOperator ? t.operatorTerms.viscosity : t.wells.viscosity}</span>
+                  </div>
+                  <InfoTooltip label={t.wells.viscosity} description={t.tooltips.viscosity} />
+                </div>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-2xl font-bold font-mono text-slate-800">{visc.toLocaleString()}</span>
+                  <span className="text-xs text-slate-500">{t.units.cp}</span>
+                </div>
+                <div className="mt-1 text-[11px] text-red-600 font-medium">
+                  {visc > 10000 ? t.wellExplain.highViscosityDesc : 'Flowable heavy crude'}
+                </div>
+              </div>
+
+              {/* Net Production */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 transition-all hover:border-slate-300">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                    <Zap className="w-4 h-4 text-teal-600" />
+                    <span>{t.wells.production}</span>
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-2xl font-bold font-mono text-slate-800">{oilRate.toFixed(1)}</span>
+                  <span className="text-xs text-slate-500">{t.units.bopd}</span>
+                </div>
+                <div className="mt-1 text-[11px] text-slate-500 font-medium">{spm} SPM • {strokeIn}" stroke</div>
+              </div>
+
+              {/* Mechanical Risk / Floating Margin — uses shared threshold */}
+              <div className={`border rounded-xl p-4 transition-all ${getMarginBgClass(floatMargin)}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
+                    <ShieldAlert className={`w-4 h-4 ${isCritical ? 'text-red-600' : 'text-emerald-600'}`} />
+                    <span>{isOperator ? t.operatorTerms.floatingMargin : t.wells.floatingMargin}</span>
+                  </div>
+                  <InfoTooltip label={t.wells.floatingMargin} description={t.tooltips.floatingMargin} />
+                </div>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className={`text-2xl font-bold font-mono ${getMarginColorClass(floatMargin)}`}>
+                    {floatMargin.toFixed(2)}
+                  </span>
+                  <span className="text-xs text-slate-500">{t.units.kn}</span>
+                </div>
+                <div className={`mt-1 text-[11px] font-medium ${isCritical ? 'text-red-700' : 'text-emerald-700'}`}>
+                  {isCritical ? `! Below ${FLOATING_MARGIN_CRITICAL_KN} kN safety threshold` : '● Operating inside safe envelope'}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Operator Diagnostic Banner */}
+            {isCritical && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 flex items-start gap-2.5">
+                <span className="font-bold text-amber-900 mt-0.5">⚠️</span>
+                <div>
+                  <span className="font-semibold">{t.wellExplain.rodFloatingDesc}</span>{' '}
+                  <span className="text-amber-700">{t.wellExplain.rodFloatingWhy}</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* SECONDARY INFORMATION PANEL: Progressive Disclosure */}
-      <div className="bg-white border border-[#E2E8F0] rounded-lg shadow-sm overflow-hidden">
-        {/* Navigation Tabs */}
-        <div className="flex items-center border-b border-[#E2E8F0] px-5 bg-[#F8FAFC]">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`py-3 px-4 text-xs font-medium border-b-2 cursor-pointer transition-colors ${
-              activeTab === 'overview'
-                ? 'border-[#0E9F9A] text-[#0E9F9A] font-semibold bg-white'
-                : 'border-transparent text-[#64748B] hover:text-[#172033]'
-            }`}
-          >
-            Subsystem Engineering Values
-          </button>
-          <button
-            onClick={() => setActiveTab('dynacard')}
-            className={`py-3 px-4 text-xs font-medium border-b-2 cursor-pointer transition-colors ${
-              activeTab === 'dynacard'
-                ? 'border-[#0E9F9A] text-[#0E9F9A] font-semibold bg-white'
-                : 'border-transparent text-[#64748B] hover:text-[#172033]'
-            }`}
-          >
-            Surface Dynacard Analysis
-          </button>
-          <button
-            onClick={() => setActiveTab('engineering')}
-            className={`py-3 px-4 text-xs font-medium border-b-2 cursor-pointer transition-colors ${
-              activeTab === 'engineering'
-                ? 'border-[#0E9F9A] text-[#0E9F9A] font-semibold bg-white'
-                : 'border-transparent text-[#64748B] hover:text-[#172033]'
-            }`}
-          >
-            Causal Physics Documentation
-          </button>
+      {/* 3. SEPARATED CAUSAL STORY: Current vs Intervention */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* CURRENT CONDITION */}
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-2 h-2 rounded-full bg-red-500" />
+            <span className="text-xs font-bold uppercase tracking-wider text-red-700">{t.causal.currentCondition}</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { label: t.causal.tempDown, color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', value: `${tRes.toFixed(0)}°C` },
+              { label: t.causal.viscUp, color: 'text-red-700', bg: 'bg-red-50 border-red-200', value: `${visc.toLocaleString()} cP` },
+              { label: t.causal.dragUp, color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', value: `${viscousDrag.toFixed(1)} kN` },
+              { label: t.causal.marginDown, color: 'text-red-700', bg: 'bg-red-50 border-red-200', value: `${floatMargin.toFixed(2)} kN` },
+              { label: t.causal.riskUp, color: 'text-red-700', bg: 'bg-red-50 border-red-200' },
+            ].map((step, i, arr) => (
+              <React.Fragment key={i}>
+                <div className={`px-3 py-2 rounded-lg border text-xs font-semibold ${step.bg} ${step.color}`}>
+                  <div>{step.label}</div>
+                  {step.value && <div className="font-mono text-[11px] mt-0.5 font-bold">{step.value}</div>}
+                </div>
+                {i < arr.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
 
-        {/* Tab 1: Subsystem Values */}
-        {activeTab === 'overview' && (
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Reservoir Domain */}
-              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-4">
-                <div className="flex items-center space-x-2 text-xs font-semibold text-[#172033] mb-3">
-                  <Droplets className="w-4 h-4 text-[#2563EB]" />
-                  <span>Reservoir Domain</span>
-                </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Reservoir Pressure:</span>
-                    <span className="font-mono font-bold text-[#172033]">{twinState.reservoir_pressure_bar ?? 65} bar</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Flowing BHP:</span>
-                    <span className="font-mono font-bold text-[#172033]">{twinState.flowing_bhp_bar ?? 18} bar</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Formation Type:</span>
-                    <span className="font-medium text-[#172033]">Jodhpur Sandstone</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Water Cut:</span>
-                    <span className="font-mono font-bold text-[#172033]">38%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Thermal Domain */}
-              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-4">
-                <div className="flex items-center space-x-2 text-xs font-semibold text-[#172033] mb-3">
-                  <Flame className="w-4 h-4 text-[#D97706]" />
-                  <span>Thermal Domain</span>
-                </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Reservoir Temp:</span>
-                    <span className="font-mono font-bold text-[#172033]">{tRes.toFixed(1)}°C</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Crude Viscosity:</span>
-                    <span className="font-mono font-bold text-[#172033]">{visc.toLocaleString()} cP</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Steam Slug Size:</span>
-                    <span className="font-mono font-bold text-[#172033]">{steamMass} t</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Steam Oil Ratio (SOR):</span>
-                    <span className="font-mono font-bold text-[#172033]">{twinState.sor ?? 4.8}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Wellbore Hydraulics */}
-              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-4">
-                <div className="flex items-center space-x-2 text-xs font-semibold text-[#172033] mb-3">
-                  <Gauge className="w-4 h-4 text-[#0E9F9A]" />
-                  <span>Wellbore Hydraulics</span>
-                </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Pump Intake Pressure:</span>
-                    <span className="font-mono font-bold text-[#172033]">{twinState.pump_intake_pressure_bar ?? 22.4} bar</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Fluid Level Depth:</span>
-                    <span className="font-mono font-bold text-[#172033]">{twinState.fluid_level_depth_m ?? 820} m</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Tubing ID:</span>
-                    <span className="font-mono font-bold text-[#172033]">2.875 in</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Well Depth:</span>
-                    <span className="font-mono font-bold text-[#172033]">1,240 m</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* SRP Mechanical */}
-              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-4">
-                <div className="flex items-center space-x-2 text-xs font-semibold text-[#172033] mb-3">
-                  <Zap className="w-4 h-4 text-[#2563EB]" />
-                  <span>SRP Mechanical</span>
-                </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Pumping Speed:</span>
-                    <span className="font-mono font-bold text-[#172033]">{twinState.spm ?? 6.8} SPM</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Stroke Length:</span>
-                    <span className="font-mono font-bold text-[#172033]">{twinState.stroke_in ?? 120} in</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Peak Rod Load:</span>
-                    <span className="font-mono font-bold text-[#172033]">{pprl.toFixed(1)} kN</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#64748B]">Floating Margin:</span>
-                    <span
-                      className={`font-mono font-bold ${
-                        isCritical ? 'text-[#DC2626]' : 'text-[#16A34A]'
-                      }`}
-                    >
-                      {floatMargin.toFixed(2)} kN
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+        {/* EXPECTED INTERVENTION EFFECT */}
+        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">{t.causal.expectedIntervention}</span>
           </div>
-        )}
-
-        {/* Tab 2: Dynacard */}
-        {activeTab === 'dynacard' && (
-          <div className="p-6">
-            <DynacardChart dynacard={dynacard} />
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { label: t.causal.steamInject, color: 'text-teal-700', bg: 'bg-teal-50 border-teal-200' },
+              { label: t.causal.tempUp, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+              { label: t.causal.viscDown, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+              { label: t.causal.dragDown, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+              { label: t.causal.marginUp, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+              { label: t.causal.improved, color: 'text-teal-700', bg: 'bg-teal-50 border-teal-200' },
+            ].map((step, i, arr) => (
+              <React.Fragment key={i}>
+                <div className={`px-3 py-2 rounded-lg border text-xs font-semibold ${step.bg} ${step.color}`}>
+                  {step.label}
+                </div>
+                {i < arr.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />}
+              </React.Fragment>
+            ))}
           </div>
-        )}
-
-        {/* Tab 3: Detailed Physics Principles */}
-        {activeTab === 'engineering' && (
-          <div className="p-6 space-y-4 text-xs">
-            <div className="bg-[#F8FAFC] p-4 rounded-lg border border-[#E2E8F0]">
-              <h4 className="font-bold text-[#172033] mb-1">
-                Thermodynamic Coupling Narrative
-              </h4>
-              <p className="text-[#64748B] leading-relaxed">
-                In Rajasthan heavy oil reservoirs (Baghewala field), crude viscosity is extremely sensitive to near-wellbore thermal decay.
-                During CSS production cycles, heat conducts away into adjacent overburden formations, depressing formation temperature from ~200°C toward 48°C.
-                Under the Andrade viscosity model, this temperature drop causes crude viscosity to multiply by two orders of magnitude (from ~150 cP to over 14,000 cP).
-              </p>
-            </div>
-            <div className="bg-[#F8FAFC] p-4 rounded-lg border border-[#E2E8F0]">
-              <h4 className="font-bold text-[#172033] mb-1">
-                Downstroke Rod-Floating Mechanics
-              </h4>
-              <p className="text-[#64748B] leading-relaxed">
-                As the sucker rod string plunges downward during the pump downstroke, annular viscous shear resistance (Couette shear stress) acts upward on the polished rod and sucker rod sections.
-                When this viscous drag force approaches the buoyant weight of the rod string, the net downward acceleration drops below the carrier-bar downward speed, resulting in rod float and wireline bridle unseating.
-                BagheTwin enforces a strict safety constraint of <strong className="text-[#172033]">Margin ≥ 2.0 kN</strong>.
-              </p>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
+
+      {/* 4. ENGINEER MODE: Deep Technical Exploration Panel */}
+      {isEngineer && (
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="flex items-center border-b border-slate-200 px-5 bg-slate-50">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`py-3 px-4 text-xs font-semibold border-b-2 cursor-pointer transition-colors ${
+                activeTab === 'overview'
+                  ? 'border-teal-600 text-teal-700 bg-white'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Subsystem Values
+            </button>
+            <button
+              onClick={() => setActiveTab('dynacard')}
+              className={`py-3 px-4 text-xs font-semibold border-b-2 cursor-pointer transition-colors ${
+                activeTab === 'dynacard'
+                  ? 'border-teal-600 text-teal-700 bg-white'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Surface Dynacard Analysis
+            </button>
+            <button
+              onClick={() => setActiveTab('physics')}
+              className={`py-3 px-4 text-xs font-semibold border-b-2 cursor-pointer transition-colors ${
+                activeTab === 'physics'
+                  ? 'border-teal-600 text-teal-700 bg-white'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Governing Equations
+            </button>
+          </div>
+
+          <div className="p-6">
+            {activeTab === 'overview' && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                  <div className="text-slate-500 font-medium">PPRL (Peak Load)</div>
+                  <div className="text-base font-bold font-mono text-slate-800 mt-1">{pprl.toFixed(1)} kN</div>
+                </div>
+                <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                  <div className="text-slate-500 font-medium">MPRL (Min Load)</div>
+                  <div className="text-base font-bold font-mono text-slate-800 mt-1">{mprl.toFixed(1)} kN</div>
+                </div>
+                <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                  <div className="text-slate-500 font-medium">Viscous Downstroke Drag</div>
+                  <div className="text-base font-bold font-mono text-slate-800 mt-1">{viscousDrag.toFixed(1)} kN</div>
+                </div>
+                <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                  <div className="text-slate-500 font-medium">Pump Intake Pressure (PIP)</div>
+                  <div className="text-base font-bold font-mono text-slate-800 mt-1">
+                    {twinState.pump_intake_pressure_bar ?? 22.4} bar
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'dynacard' && (
+              <div className="py-2">
+                <DynacardChart dynacard={dynacard} />
+              </div>
+            )}
+
+            {activeTab === 'physics' && (
+              <div className="space-y-4 text-xs">
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <div className="font-bold text-slate-800 mb-1">Viscosity: Andrade/Arrhenius Model</div>
+                  <div className="font-mono text-teal-700 text-[11px] mb-2">
+                    μ(T) = μ_ref · exp[B · (1/T_K - 1/T_ref_K)]
+                  </div>
+                  <p className="text-slate-600 leading-relaxed">
+                    Calibrated with Baghewala crude baseline: 11,500 cP at 50°C with sensitivity coefficient B = 5,200 K.
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <div className="font-bold text-slate-800 mb-1">Downstroke Floating Margin Constraint</div>
+                  <div className="font-mono text-red-700 text-[11px] mb-2">
+                    Margin = W_rod_buoyant · (1 - α) - F_drag - F_surface ≥ {FLOATING_MARGIN_CRITICAL_KN} kN
+                  </div>
+                  <p className="text-slate-600 leading-relaxed">
+                    Couette shear drag acts upward against downstroke rod plunge. Below {FLOATING_MARGIN_CRITICAL_KN} kN margin, carrier-bar separation occurs.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

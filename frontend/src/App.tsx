@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { JuryDemoModal } from './components/JuryDemoModal';
+import { OnboardingModal } from './components/OnboardingModal';
 import { CommandCenter } from './pages/CommandCenter';
 import { WellExplorer } from './pages/WellExplorer';
+import { RecommendationsPage } from './pages/RecommendationsPage';
 import { DigitalTwinPage } from './pages/DigitalTwinPage';
 import { CSSOptimizerPage } from './pages/CSSOptimizerPage';
 import { SRPOptimizerPage } from './pages/SRPOptimizerPage';
@@ -15,32 +17,44 @@ import { LiveOperationsPage } from './pages/LiveOperationsPage';
 import { AuditTrailPage } from './pages/AuditTrailPage';
 import { ProvenancePage } from './pages/ProvenancePage';
 
+import { I18nProvider, useI18n } from './i18n';
+import { ModeProvider } from './contexts/ModeContext';
+
 import { api } from './services/api';
 import { WellSummary, DigitalTwinState, DynacardData } from './types';
 
-const TAB_TITLES: Record<string, string> = {
-  'command-center': 'Command Center',
-  'well-explorer': 'Well Explorer',
-  'digital-twin': 'Digital Twin',
-  'css-optimizer': 'CSS Optimizer',
-  'srp-optimizer': 'SRP Optimizer',
-  'scenario-lab': 'Scenario Lab',
-  'risk-reliability': 'Risk & Reliability',
-  'forecasts': 'Forecasts & Trajectories',
-  'before-after': 'Before vs After Optimization',
-  'live-ops': 'Live Operations & Telemetry',
-  'audit-trail': 'Audit Trail',
-  'provenance': 'Model & Data Provenance',
-};
-
-export function App() {
+function AppContent() {
+  const { t } = useI18n();
   const [currentTab, setCurrentTab] = useState<string>('command-center');
   const [selectedWellCode, setSelectedWellCode] = useState<string>('BGW-007');
   const [wells, setWells] = useState<WellSummary[]>([]);
   const [twinState, setTwinState] = useState<DigitalTwinState | null>(null);
   const [dynacard, setDynacard] = useState<DynacardData | null>(null);
   const [isJuryDemoOpen, setIsJuryDemoOpen] = useState<boolean>(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem('baghetwin-onboarded');
+    } catch {
+      return false;
+    }
+  });
   const [loading, setLoading] = useState<boolean>(true);
+
+  const tabTitles: Record<string, string> = {
+    'command-center': t.nav.home,
+    'well-explorer': t.nav.wells,
+    'recommendations': t.nav.recommendations,
+    'before-after': t.nav.simulate,
+    'audit-trail': t.nav.history,
+    'digital-twin': t.nav.digitalTwin,
+    'css-optimizer': t.nav.cssOptimizer,
+    'srp-optimizer': t.nav.srpOptimizer,
+    'scenario-lab': t.nav.scenarioLab,
+    'risk-reliability': t.nav.riskReliability,
+    'forecasts': t.nav.forecasts,
+    'live-ops': t.nav.liveOperations,
+    'provenance': t.nav.provenance,
+  };
 
   const fetchFleet = async () => {
     try {
@@ -79,6 +93,13 @@ export function App() {
     }
   };
 
+  const handleCloseOnboarding = () => {
+    setIsOnboardingOpen(false);
+    try {
+      localStorage.setItem('baghetwin-onboarded', 'true');
+    } catch {}
+  };
+
   useEffect(() => {
     fetchFleet();
   }, []);
@@ -96,7 +117,7 @@ export function App() {
         setSelectedWellCode={setSelectedWellCode}
         onLaunchJuryDemo={() => setIsJuryDemoOpen(true)}
         onResetDemo={handleResetDemo}
-        currentTabTitle={TAB_TITLES[currentTab] || 'Command Center'}
+        currentTabTitle={tabTitles[currentTab] || t.nav.home}
       />
 
       {/* 2. Main Workstation Area: Sidebar + Active Workspace */}
@@ -110,8 +131,8 @@ export function App() {
         {/* Center / Right Active Operational Viewport */}
         <main className="flex-1 bg-[#F5F7FA] p-4 lg:p-6 overflow-y-auto overflow-x-hidden">
           {loading || !twinState || !dynacard ? (
-            <div className="h-full flex flex-col items-center justify-center space-y-3 text-sm text-[#64748B]">
-              <div className="w-8 h-8 border-2 border-[#0E9F9A] border-t-transparent rounded-full animate-spin" />
+            <div className="h-full flex flex-col items-center justify-center space-y-3 text-sm text-slate-500">
+              <div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
               <div className="font-mono text-xs">
                 Synchronizing BagheTwin Multi-Physics Model Vector...
               </div>
@@ -134,6 +155,16 @@ export function App() {
                   selectedWellCode={selectedWellCode}
                   onSelectWell={setSelectedWellCode}
                   onNavigateTab={setCurrentTab}
+                />
+              )}
+              {currentTab === 'recommendations' && (
+                <RecommendationsPage
+                  wells={wells}
+                  twinState={twinState}
+                  selectedWellCode={selectedWellCode}
+                  onNavigateTab={setCurrentTab}
+                  onSelectWell={setSelectedWellCode}
+                  onRefreshTwinState={() => fetchWellState(selectedWellCode)}
                 />
               )}
               {currentTab === 'digital-twin' && (
@@ -181,7 +212,7 @@ export function App() {
         </main>
       </div>
 
-      {/* 3. Dedicated 5-Minute Jury Demo Modal */}
+      {/* 3. Dedicated Guided Walkthrough Modal */}
       <JuryDemoModal
         isOpen={isJuryDemoOpen}
         onClose={() => setIsJuryDemoOpen(false)}
@@ -191,7 +222,27 @@ export function App() {
         onSelectWell={setSelectedWellCode}
         onResetDemo={handleResetDemo}
       />
+
+      {/* 4. First-time 3-Screen Onboarding Modal */}
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={handleCloseOnboarding}
+        onStartDemo={() => {
+          handleCloseOnboarding();
+          setIsJuryDemoOpen(true);
+        }}
+      />
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <I18nProvider>
+      <ModeProvider>
+        <AppContent />
+      </ModeProvider>
+    </I18nProvider>
   );
 }
 

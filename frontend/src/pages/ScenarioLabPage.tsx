@@ -13,6 +13,7 @@ import {
   ChevronUp,
   CheckCircle2,
 } from 'lucide-react';
+import { FLOATING_MARGIN_CRITICAL_KN } from '../services/safetyThresholds';
 
 interface ScenarioLabPageProps {
   twinState: DigitalTwinState;
@@ -96,7 +97,7 @@ export const ScenarioLabPage: React.FC<ScenarioLabPageProps> = ({ twinState }) =
               Step 1: Current Well State
             </div>
             <span className="text-xs font-mono text-[#DC2626] font-semibold">
-              {twinState.floating_margin_kn < 2.0 ? 'Critical Rod-Floating Condition' : 'Stable'}
+              {twinState.floating_margin_kn < FLOATING_MARGIN_CRITICAL_KN ? 'Critical Rod-Floating Condition' : 'Stable'}
             </span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
@@ -238,7 +239,7 @@ export const ScenarioLabPage: React.FC<ScenarioLabPageProps> = ({ twinState }) =
                 {simulatedOutcomes.risk}
               </div>
               <div className="text-[11px] text-[#64748B] mt-1">
-                Margin: {simulatedOutcomes.margin} kN (&gt;2.0 kN floor)
+                Margin: {simulatedOutcomes.margin} kN (&gt;{FLOATING_MARGIN_CRITICAL_KN} kN floor)
               </div>
             </div>
           </div>
